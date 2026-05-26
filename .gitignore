@@ -1,0 +1,19 @@
+# dependencies
+/node_modules
+/.next
+/out
+
+# testing/datasets (Exclude heavy raw data)
+/ml/data/
+
+# local env files
+.env*.local
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# system
+.DS_Store
+Thumbs.db
