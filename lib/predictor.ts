@@ -1,3 +1,7 @@
+import { analyzeSentimentAndStance, SentimentStanceResult } from "./sentiment";
+import { computeVerdict, VerdictResult } from "./verdict";
+import { detectAnomaly } from "./anomaly";
+
 export interface ModelMetadata {
   feature_names: string[];
   vocab_indices: { [word: string]: number };
@@ -34,6 +38,9 @@ export interface PredictionResult {
     sensationalismScore: number; // 0 to 100
     topContributingWords: Array<{ word: string; weight: number; impact: number }>;
   };
+  sentiment: SentimentStanceResult;
+  verdict: VerdictResult;
+  anomalyWarning: string | null;
 }
 
 export function predictNews(text: string, model: ModelMetadata): PredictionResult {
@@ -89,7 +96,16 @@ export function predictNews(text: string, model: ModelMetadata): PredictionResul
   }
 
   // 5. Apply Sigmoid to get probability of class 1 (REAL)
-  const realProbability = 1 / (1 + Math.exp(-decisionValue));
+  const baseRealProbability = 1 / (1 + Math.exp(-decisionValue));
+
+  // 5.5. Run common sense anomaly detector layer
+  const anomaly = detectAnomaly(text);
+
+  // Apply penalty if anomaly detected
+  const realProbability = anomaly.isAnomaly 
+    ? Math.max(0.02, baseRealProbability - anomaly.probabilityPenalty)
+    : baseRealProbability;
+
   const isReal = realProbability >= 0.5;
   const confidence = isReal ? realProbability * 100 : (1 - realProbability) * 100;
 
@@ -116,10 +132,26 @@ export function predictNews(text: string, model: ModelMetadata): PredictionResul
   if (sensationalMatches) {
     sensationalismScore = Math.min(100, sensationalMatches.length * 15 + 10);
   }
+  if (anomaly.isAnomaly) {
+    sensationalismScore = Math.min(100, sensationalismScore + anomaly.sensationalismBonus);
+  }
+
+  const sentiment = analyzeSentimentAndStance(text);
+  const confidenceVal = Math.round(confidence);
+  const verdict = computeVerdict(
+    isReal,
+    confidenceVal,
+    clickbaitScore,
+    sensationalismScore,
+    sentiment.fear,
+    sentiment.anger,
+    sentiment.bias,
+    anomaly.isAnomaly
+  );
 
   return {
     isReal,
-    confidence: Math.round(confidence),
+    confidence: confidenceVal,
     realProbability,
     wordCount,
     readTimeMin,
@@ -127,6 +159,9 @@ export function predictNews(text: string, model: ModelMetadata): PredictionResul
       clickbaitScore,
       sensationalismScore,
       topContributingWords: sortedContributors
-    }
+    },
+    sentiment,
+    verdict,
+    anomalyWarning: anomaly.warning
   };
 }
