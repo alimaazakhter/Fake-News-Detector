@@ -379,6 +379,18 @@ export default function Home() {
           </div>
         </header>
 
+        {/* Hero Branding Section */}
+        <div className="text-center py-8 mb-6 animate-fade-in">
+          <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-3 font-mono">
+            <span className="bg-gradient-to-r from-amber-400 via-emerald-400 to-teal-400 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(16,185,129,0.1)]">
+              TruthShield AI
+            </span>
+          </h1>
+          <p className="text-slate-400 text-xs md:text-sm max-w-2xl mx-auto leading-relaxed font-medium px-4">
+            Analyze headlines, URLs, or screenshots. Our debiased local classifier works alongside live fact-checking resources to shield you from misinformation.
+          </p>
+        </div>
+
         {/* Cinematic Dashboard Layout */}
         <motion.div 
           variants={containerVariants}
